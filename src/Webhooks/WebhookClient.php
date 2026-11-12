@@ -31,7 +31,7 @@ final class WebhookClient
             'timeout'         => $options['timeout'] ?? 30,
             'connect_timeout' => 10,
             'http_errors'     => false,
-            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1', 'Authorization' => 'Bearer ' . $apiKey],
+            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1.1', 'Authorization' => 'Bearer ' . $apiKey],
         ];
         if (isset($options['handler'])) {
             $config['handler'] = $options['handler'];
@@ -42,7 +42,7 @@ final class WebhookClient
     /** @return list<array{id: int, event: string, url: string, active: bool, created_at: string}> */
     public function list(): array
     {
-        return $this->request('GET', 'webhooks')['data'];
+        return $this->data($this->request('GET', 'webhooks'));
     }
 
     /**
@@ -52,7 +52,7 @@ final class WebhookClient
      */
     public function create(string $event, string $url): array
     {
-        return $this->request('POST', 'webhooks', ['json' => ['event' => $event, 'url' => $url]])['data'];
+        return $this->data($this->request('POST', 'webhooks', ['json' => ['event' => $event, 'url' => $url]]));
     }
 
     /** Returns false if it does not exist (or belongs to someone else). */
@@ -68,6 +68,15 @@ final class WebhookClient
             }
             throw $e;
         }
+    }
+
+    private function data(array $json): array
+    {
+        if (! is_array($json['data'])) {
+            throw new VoisException("VOIS API'den beklenmeyen yanıt (data alanı yok).");
+        }
+
+        return $json['data'];
     }
 
     private function request(string $method, string $path, array $options = []): array

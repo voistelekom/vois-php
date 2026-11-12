@@ -59,6 +59,7 @@ final class SmsClient
 
     /**
      * @param array{base_uri?: string, timeout?: float, handler?: callable} $options
+     *        (the `api_key` option is internal: use SmsClient::withApiKey())
      */
     public function __construct(string $username, string $password, array $options = [])
     {
@@ -72,7 +73,7 @@ final class SmsClient
             'timeout'         => $options['timeout'] ?? 30,
             'connect_timeout' => 10,
             'http_errors'     => false,
-            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1'] + ($this->keyMode ? ['Authorization' => 'Bearer ' . $apiKey] : []),
+            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1.1'] + ($this->keyMode ? ['Authorization' => 'Bearer ' . $apiKey] : []),
         ];
         if (! $this->keyMode) {
             $config['auth'] = [$username, $password];
@@ -88,6 +89,8 @@ final class SmsClient
      * the SMS user/password. Same methods; requests go to https://api.vois.com.tr/v1/sms/.
      * VOIS-side errors ({error, message}, e.g. insufficient_scope, sms_not_configured) arrive as SmsException
      * with errorCode = the `error` value.
+     *
+     * A custom base_uri in this mode must point at the SMS path, e.g. https://api.vois.com.tr/v1/sms/.
      *
      * @param array{base_uri?: string, timeout?: float, handler?: callable} $options
      */

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Orchestra\Testbench\TestCase as Testbench;
 use Vois\Laravel\Facades\VoisSms;
 use Vois\Laravel\Facades\VoisVoice;
+use Vois\Laravel\Facades\VoisWebhooks;
 use Vois\Laravel\VoisServiceProvider;
 use Vois\Sms\SmsClient;
 use Vois\Voice\VoiceClient;
@@ -21,7 +22,7 @@ final class LaravelTest extends Testbench
 
     protected function getPackageAliases($app): array
     {
-        return ['VoisSms' => VoisSms::class, 'VoisVoice' => VoisVoice::class];
+        return ['VoisSms' => VoisSms::class, 'VoisVoice' => VoisVoice::class, 'VoisWebhooks' => VoisWebhooks::class];
     }
 
     protected function defineEnvironment($app): void
@@ -45,6 +46,7 @@ final class LaravelTest extends Testbench
         $this->assertSame(app(SmsClient::class), app(SmsClient::class));
         $this->assertInstanceOf(SmsClient::class, VoisSms::getFacadeRoot());
         $this->assertInstanceOf(VoiceClient::class, VoisVoice::getFacadeRoot());
+        $this->assertInstanceOf(WebhookClient::class, VoisWebhooks::getFacadeRoot());
     }
 
     public function test_sms_api_key_binds_key_client_when_no_username(): void

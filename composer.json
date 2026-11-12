@@ -45,7 +45,8 @@
             ],
             "aliases": {
                 "VoisSms": "Vois\\Laravel\\Facades\\VoisSms",
-                "VoisVoice": "Vois\\Laravel\\Facades\\VoisVoice"
+                "VoisVoice": "Vois\\Laravel\\Facades\\VoisVoice",
+                "VoisWebhooks": "Vois\\Laravel\\Facades\\VoisWebhooks"
             }
         }
     },

@@ -135,9 +135,11 @@ VOIS_WEBHOOK_SECRET=...
 ```php
 use Vois\Laravel\Facades\VoisSms;
 use Vois\Laravel\Facades\VoisVoice;
+use Vois\Laravel\Facades\VoisWebhooks;
 
 VoisSms::sendSingle('905321234567', 'Merhaba', 'BASLIK', 'Deneme gonderim');
 VoisVoice::call(auth()->user()->dahili, $musteri->telefon, ['reference' => 'musteri-' . $musteri->id]);
+$kayit = VoisWebhooks::create('call.ended', url('/api/vois/webhook'));   // webhooks:manage yetkisi; secret yalnız burada döner
 ```
 
 Webhook rotasını `routes/api.php` içine koyun (orada CSRF kontrolü yoktur; isteği tarayıcı değil VOIS sunucusu gönderir):

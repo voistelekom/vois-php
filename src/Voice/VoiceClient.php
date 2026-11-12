@@ -42,7 +42,7 @@ final class VoiceClient
             'timeout'         => $options['timeout'] ?? 30,
             'connect_timeout' => 10,
             'http_errors'     => false,
-            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.0'] + $auth,
+            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1.1'] + $auth,
         ];
         if (isset($options['handler'])) {
             $config['handler'] = $options['handler'];

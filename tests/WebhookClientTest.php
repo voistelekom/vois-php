@@ -76,4 +76,17 @@ final class WebhookClientTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         new WebhookClient('');
     }
+
+    public function test_null_data_throws_vois_exception_not_type_error(): void
+    {
+        $w = $this->client([$this->json(200, ['data' => null]), $this->json(201, ['data' => null])]);
+        foreach ([fn () => $w->list(), fn () => $w->create('call.ended', 'https://a.example/h')] as $call) {
+            try {
+                $call();
+                $this->fail('exception expected');
+            } catch (VoisException $e) {
+                $this->assertStringContainsString('beklenmeyen yanıt', $e->getMessage());
+            }
+        }
+    }
 }
