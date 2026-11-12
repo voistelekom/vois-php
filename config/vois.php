@@ -6,6 +6,8 @@ return [
         'username' => env('VOIS_SMS_USERNAME'),
         'password' => env('VOIS_SMS_PASSWORD'),
         'base_uri' => env('VOIS_SMS_BASE_URI', 'https://api.vois.com.tr/'),
+        // Alternatif: kullanıcı adı boşsa SMS, VOIS API anahtarıyla gönderilir (anahtarda sms:send / sms:read yetkisi gerekir).
+        'api_key'  => env('VOIS_SMS_API_KEY', env('VOIS_API_KEY')),
     ],
 
     // Voice API: key created in the VOIS panel › Ayarlar › Açık REST API & Webhook. https://docs.vois.com.tr/voice/

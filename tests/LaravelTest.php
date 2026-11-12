@@ -10,6 +10,7 @@ use Vois\Laravel\Facades\VoisVoice;
 use Vois\Laravel\VoisServiceProvider;
 use Vois\Sms\SmsClient;
 use Vois\Voice\VoiceClient;
+use Vois\Webhooks\WebhookClient;
 
 final class LaravelTest extends Testbench
 {
@@ -46,12 +47,31 @@ final class LaravelTest extends Testbench
         $this->assertInstanceOf(VoiceClient::class, VoisVoice::getFacadeRoot());
     }
 
+    public function test_sms_api_key_binds_key_client_when_no_username(): void
+    {
+        config(['vois.sms.username' => null, 'vois.sms.password' => null, 'vois.sms.api_key' => 'vois_1_key']);
+        app()->forgetInstance(SmsClient::class);
+        $sms = app(SmsClient::class);
+        $this->assertInstanceOf(SmsClient::class, $sms);
+        $ref = new \ReflectionProperty($sms, 'keyMode');
+        $this->assertTrue($ref->getValue($sms));
+    }
+
+    public function test_sms_credentials_win_over_api_key_and_webhook_client_is_bound(): void
+    {
+        config(['vois.sms.api_key' => 'vois_1_key']);
+        app()->forgetInstance(SmsClient::class);
+        $ref = new \ReflectionProperty(app(SmsClient::class), 'keyMode');
+        $this->assertFalse($ref->getValue(app(SmsClient::class)));
+        $this->assertInstanceOf(WebhookClient::class, app(WebhookClient::class));
+    }
+
     public function test_default_config_reads_env_names(): void
     {
         $cfg = require __DIR__ . '/../config/vois.php';
         $this->assertSame(['sms', 'voice', 'webhook'], array_keys($cfg));
         $src = file_get_contents(__DIR__ . '/../config/vois.php');
-        foreach (['VOIS_SMS_USERNAME', 'VOIS_SMS_PASSWORD', 'VOIS_API_KEY', 'VOIS_WEBHOOK_SECRET'] as $env) {
+        foreach (['VOIS_SMS_USERNAME', 'VOIS_SMS_PASSWORD', 'VOIS_API_KEY', 'VOIS_SMS_API_KEY', 'VOIS_WEBHOOK_SECRET'] as $env) {
             $this->assertStringContainsString($env, $src);
         }
     }

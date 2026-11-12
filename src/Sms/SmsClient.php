@@ -18,6 +18,7 @@ use Vois\Exception\VoisException;
 final class SmsClient
 {
     public const DEFAULT_BASE_URI = 'https://api.vois.com.tr/';
+    public const API_KEY_BASE_URI = 'https://api.vois.com.tr/v1/sms/';
 
     /** Turkish descriptions, same as docs.vois.com.tr/sms/#hatalar */
     private const MESSAGES = [
@@ -53,26 +54,50 @@ final class SmsClient
 
     private ClientInterface $http;
 
+    /** true: authenticated with a VOIS API key (Bearer, /v1/sms/ paths). */
+    private bool $keyMode = false;
+
     /**
      * @param array{base_uri?: string, timeout?: float, handler?: callable} $options
      */
     public function __construct(string $username, string $password, array $options = [])
     {
-        if ($username === '' || $password === '') {
+        $apiKey = $options['api_key'] ?? null;
+        if ($apiKey === null && ($username === '' || $password === '')) {
             throw new \InvalidArgumentException('SMS API kullanıcı adı ve şifresi gerekli (VOIS_SMS_USERNAME / VOIS_SMS_PASSWORD).');
         }
+        $this->keyMode = $apiKey !== null;
         $config = [
-            'base_uri'        => rtrim($options['base_uri'] ?? self::DEFAULT_BASE_URI, '/') . '/',
-            'auth'            => [$username, $password],
+            'base_uri'        => rtrim($options['base_uri'] ?? ($this->keyMode ? self::API_KEY_BASE_URI : self::DEFAULT_BASE_URI), '/') . '/',
             'timeout'         => $options['timeout'] ?? 30,
             'connect_timeout' => 10,
             'http_errors'     => false,
-            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.0'],
+            'headers'         => ['Accept' => 'application/json', 'User-Agent' => 'vois-php/1.1'] + ($this->keyMode ? ['Authorization' => 'Bearer ' . $apiKey] : []),
         ];
+        if (! $this->keyMode) {
+            $config['auth'] = [$username, $password];
+        }
         if (isset($options['handler'])) {
             $config['handler'] = $options['handler'];
         }
         $this->http = new Client($config);
+    }
+
+    /**
+     * Use a VOIS API key (panel › Ayarlar › Açık REST API & Webhook, scope sms:send / sms:read) instead of
+     * the SMS user/password. Same methods; requests go to https://api.vois.com.tr/v1/sms/.
+     * VOIS-side errors ({error, message}, e.g. insufficient_scope, sms_not_configured) arrive as SmsException
+     * with errorCode = the `error` value.
+     *
+     * @param array{base_uri?: string, timeout?: float, handler?: callable} $options
+     */
+    public static function withApiKey(string $apiKey, array $options = []): self
+    {
+        if ($apiKey === '') {
+            throw new \InvalidArgumentException('VOIS API anahtarı gerekli (VOIS_API_KEY).');
+        }
+
+        return new self('', '', ['api_key' => $apiKey] + $options);
     }
 
     // ------------------------------------------------------------------ sending
@@ -184,6 +209,9 @@ final class SmsClient
 
     private function request(string $method, string $path, ?array $body = null): array
     {
+        if ($this->keyMode) {
+            $path = $path === 'user/credit' ? 'credit' : (str_starts_with($path, 'sms/') ? substr($path, 4) : $path);
+        }
         try {
             $res = $this->http->request($method, $path, $body === null ? [] : ['json' => $body]);
         } catch (GuzzleException $e) {
@@ -193,6 +221,9 @@ final class SmsClient
         $json = json_decode((string) $res->getBody(), true);
         if (! is_array($json)) {
             throw new VoisException("VOIS SMS API'den beklenmeyen yanıt (HTTP $status).", $status);
+        }
+        if (isset($json['error']) && is_string($json['error'])) {
+            throw new SmsException((string) ($json['message'] ?? $json['error']), $json['error'], null, $status);
         }
         if (! empty($json['err']) && is_array($json['err'])) {
             $code = (string) ($json['err']['code'] ?? 'ERR_UNKNOWN');

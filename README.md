@@ -42,6 +42,20 @@ try {
 
 Diğer yöntemler: `send()` (ham gövde, ör. MMS), `cancel()`, `packages()`, `packageItems()`, `summary()`, `inquiry()`, `senders()`, `gateways()`, `inbound()`.
 
+### VOIS API anahtarıyla SMS
+
+SMS kullanıcı adı yerine panelde oluşturduğunuz VOIS API anahtarıyla da gönderebilirsiniz (anahtarda `sms:send` / `sms:read` yetkisi olmalı). Yöntemler aynıdır.
+
+```php
+$sms = SmsClient::withApiKey('vois_1234_…');
+echo $sms->credit();
+try {
+    $sms->sendSingle('905321234567', 'Merhaba', 'BASLIK', 'Deneme gonderim');
+} catch (SmsException $e) {
+    $e->errorCode;     // VOIS tarafı hatalarda: insufficient_scope, sms_not_configured, sms_blocked, rate_limited …
+}
+```
+
 ## Ses (tıkla-ara, çağrı geçmişi, kayıtlar)
 
 Anahtarı VOIS panelinizde oluşturun: **Ayarlar › Açık REST API & Webhook › API & Webhook Yönetimi**.
@@ -67,6 +81,25 @@ $page = $voice->cdr('2026-11-01', '2026-11-12', ['direction' => 'inbound']);  //
 foreach ($voice->cdrAll('2026-11-01', '2026-11-12') as $row) { /* bütün sayfalar */ }
 $voice->cdrShow($callId);
 $file = $voice->downloadRecording($callId, '/kayitlar');       // klasör verin: cagri-<id>.wav ya da .mp3 olarak kaydeder
+```
+
+## Webhook yönetimi
+
+Anahtarınızla (`webhooks:manage` yetkisi) kendi webhook'larınızı kodla yönetin. Bir anahtar yalnızca kendi oluşturduklarını görür ve siler.
+
+```php
+use Vois\Webhooks\WebhookClient;
+use Vois\Exception\WebhookException;
+
+$wh = new WebhookClient('vois_1234_…');
+try {
+    $kayit = $wh->create('call.ended', 'https://siteniz.com/vois/webhook');
+    $kayit['secret'];                  // gizli anahtar yalnızca burada görünür; saklayın
+} catch (WebhookException $e) {
+    $e->errorCode;     // invalid_event, url_not_allowed, https_required, limit_reached …
+}
+$wh->list();                           // [['id' => 3, 'event' => …, 'url' => …, 'active' => true, …]]
+$wh->delete(3);                        // false: bulunamadı
 ```
 
 ## Webhook doğrulama
@@ -95,6 +128,7 @@ Paket kendini otomatik kaydeder. `.env`:
 VOIS_SMS_USERNAME=...
 VOIS_SMS_PASSWORD=...
 VOIS_API_KEY=vois_...
+# SMS kullanıcı adı verilmezse SMS, VOIS_API_KEY (ya da VOIS_SMS_API_KEY) ile gönderilir
 VOIS_WEBHOOK_SECRET=...
 ```
 
@@ -124,6 +158,7 @@ Ayar dosyasını projenize kopyalamak için: `php artisan vendor:publish --tag=v
 |---|---|
 | `Vois\Exception\SmsException` | SMS API hata döndürdü (`errorCode`, `status`, `httpStatus`) |
 | `Vois\Exception\VoiceException` | Ses API hata döndürdü (`errorCode`, `httpStatus`) |
+| `Vois\Exception\WebhookException` | Webhook yönetimi hata döndürdü (`errorCode`, `httpStatus`) |
 | `Vois\Exception\InvalidSignatureException` | Webhook imzası geçersiz ya da olay eski |
 | `Vois\Exception\VoisException` | Ağ hatası ya da beklenmeyen yanıt (diğerlerinin üst sınıfı) |
 
